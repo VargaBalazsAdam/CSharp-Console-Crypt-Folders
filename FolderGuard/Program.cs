@@ -10,12 +10,19 @@ class Program
   {
     if (args.Length == 0)
     {
-      Console.WriteLine("Usage: Drag and drop a folder or a .locked file onto this exe.");
+      PrintMessage("Usage: Drag and drop a folder or a .locked file onto this exe.");
       Console.ReadKey(true);
       return;
     }
 
     string keyFile = "Key.key";
+
+    if (!File.Exists(keyFile))
+    {
+      PrintErrorMessage("Error: Key.key file not found.");
+      Console.ReadKey(true);
+      return;
+    }
 
     foreach (string inputFile in args)
     {
@@ -23,21 +30,35 @@ class Program
       {
         // Unlock the folder
         string outputFolder = inputFile.Replace(".locked", "");
-        DecryptFolder(inputFile, keyFile, outputFolder);
+        try
+        {
+          DecryptFolder(inputFile, keyFile, outputFolder);
+        }
+        catch
+        {
+          PrintErrorMessage($"Failed to decrypt {inputFile}.");
+        }
       }
       else if (Directory.Exists(inputFile))
       {
         // Lock the folder
         string lockedFile = inputFile + ".locked";
-        EncryptFolder(inputFile, keyFile, lockedFile);
+        try
+        {
+          EncryptFolder(inputFile, keyFile, lockedFile);
+        }
+        catch
+        {
+          PrintErrorMessage($"Failed to encrypt {inputFile}.");
+        }
       }
       else
       {
-        Console.WriteLine($"Invalid input: {inputFile}");
+        PrintErrorMessage($"Invalid input: {inputFile}");
       }
     }
 
-    Console.WriteLine("Press any key to exit.");
+    PrintSuccessMessage("Press any key to exit.");
     Console.ReadKey(true);
   }
 
@@ -45,11 +66,11 @@ class Program
   {
     if (Directory.GetFiles(inputFolder, "*", SearchOption.AllDirectories).Length == 0)
     {
-      Console.WriteLine($"Error: {inputFolder} is an empty folder. Nothing to encrypt.");
+      PrintErrorMessage($"Error: {inputFolder} is an empty folder. Nothing to encrypt.");
       return;
     }
 
-    Console.WriteLine($"Encrypting {inputFolder} to {outputFile} with key {keyFile}");
+    PrintMessage($"Encrypting {inputFolder} to {outputFile} with key {keyFile}");
 
     using (Aes aesAlg = Aes.Create())
     {
@@ -69,7 +90,7 @@ class Program
 
   static void DecryptFolder(string inputFile, string keyFile, string outputFolder)
   {
-    Console.WriteLine($"Decrypting {inputFile} to {outputFolder} with key {keyFile}");
+    PrintMessage($"Decrypting {inputFile} to {outputFolder} with key {keyFile}");
 
     using (Aes aesAlg = Aes.Create())
     {
@@ -155,5 +176,27 @@ class Program
         }
       }
     }
+  }
+
+  // Custom Console.WriteLine methods for different message types
+  static void PrintErrorMessage(string message)
+  {
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine(message);
+    Console.ResetColor();
+  }
+
+  static void PrintSuccessMessage(string message)
+  {
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine(message);
+    Console.ResetColor();
+  }
+
+  static void PrintMessage(string message)
+  {
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine(message);
+    Console.ResetColor();
   }
 }
